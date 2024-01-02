@@ -143,7 +143,7 @@ public class ParserMain
                         jcInst.writeLog("* Magnet containing [%s] file is nothing.", alParam.toString());
                     }
 
-                    Thread.sleep(1000 + (long)(Math.random() * 1500));
+                    Thread.sleep(1500 + (long)(Math.random() * 1500));
                 }
             }
         }

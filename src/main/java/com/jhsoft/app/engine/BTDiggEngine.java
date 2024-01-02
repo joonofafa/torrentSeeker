@@ -9,99 +9,80 @@ import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 
-public class BTDiggEngine extends ParserHandler
-{
-    private enum ClassName
-    {
+public class BTDiggEngine extends ParserHandler {
+    private enum ClassName {
         ONE_RESULT("one_result"),
         TORRENT_EXCERPT("torrent_excerpt"),
         TORRENT_MAGNET("torrent_magnet"),
         FA_MAGNET("fa fa-magnet"),
         ;
-        private final String m_strPrefix;
+        private final String _prefix;
 
-        ClassName(String strPrefix)
-        {
-            m_strPrefix = strPrefix;
+        ClassName(String prefix) {
+            _prefix = prefix;
         }
 
-        public String getKeyword()
-        {
-            return m_strPrefix;
+        public String getKeyword() {
+            return _prefix;
         }
     }
 
-    private enum AttributeName
-    {
+    private enum AttributeName {
         FA_FILE("fa fa-file"),
         ;
 
-        private final String m_strPrefix;
+        private final String _prefix;
 
-        AttributeName(String strPrefix)
-        {
-            m_strPrefix = strPrefix;
+        AttributeName(String prefix) {
+            _prefix = prefix;
         }
 
-        public String getKeyword()
-        {
-            return m_strPrefix;
+        public String getKeyword() {
+            return _prefix;
         }
     }
 
-    public BTDiggEngine()
-    {
+    public BTDiggEngine() {
         super("https://btdig.com/search?q=");
     }
 
-    public ArrayList<MagnetInfo> searchTorrent(ArrayList<String> strParameter) throws Exception
-    {
-        StringBuilder sbKeyword = new StringBuilder();
-        ArrayList<MagnetInfo> alMagInfo = new ArrayList<>();
+    public ArrayList<MagnetInfo> searchTorrent(ArrayList<String> strParameter) throws Exception {
+        StringBuilder keyword = new StringBuilder();
+        ArrayList<MagnetInfo> magInfoList = new ArrayList<>();
 
-        if (strParameter == null)
-        {
+        if (strParameter == null) {
             return null;
         }
 
-        for (String strItem : strParameter)
-        {
-            sbKeyword.append(strItem.trim());
-            sbKeyword.append("+");
+        for (String strItem : strParameter) {
+            keyword.append(strItem.trim());
+            keyword.append("+");
         }
 
-        String strUrl = super.getUrlString() + sbKeyword.toString();
-        String strTemp;
-        Document docInst = Jsoup.connect(strUrl).get();
-        Elements elsOneResult;
+        String url = super.getUrlString() + keyword.toString() + "&order=2";
+        String temp;
+        Document document = Jsoup.connect(url).get();
+        Elements elsResult;
         Elements elsTorrentExcerpt, elsMagnet, elsFaMagnet;
         boolean isFound;
         MagnetInfo miTemp = null;
 
-        /*super.writeLog("* URL Called [%s]", strUrl);*/
+        super.writeLog("* URL Called [%s]", url);
 
-        elsOneResult = docInst.getElementsByClass(ClassName.ONE_RESULT.getKeyword());
-        /*writeLog("* elsOneResult.size [%d]", elsOneResult.size());*/
-        if (elsOneResult.size() > 0)
-        {
-            for (Element elItem : elsOneResult)
-            {
-                /*super.writeLog("* Index [%d]", elsOneResult.indexOf(elItem));*/
+        elsResult = document.getElementsByClass(ClassName.ONE_RESULT.getKeyword());
+        /*writeLog("* elsResult.size [%d]", elsResult.size());*/
+        if (elsResult.size() > 0) {
+            for (Element elItem : elsResult) {
+                /*super.writeLog("* Index [%d]", elsResult.indexOf(elItem));*/
                 elsTorrentExcerpt = getElementOfContainingKeyword(ClassName.TORRENT_EXCERPT.getKeyword(), elItem);
-                if (elsTorrentExcerpt.size() > 0)
-                {
+                if (elsTorrentExcerpt.size() > 0) {
                     miTemp = new MagnetInfo();
-                    for (Element elSubItem : elsTorrentExcerpt)
-                    {
-                        for (Element elSubSubItem : elSubItem.children())
-                        {
+                    for (Element elSubItem : elsTorrentExcerpt) {
+                        for (Element elSubSubItem : elSubItem.children()) {
                             isFound = false;
-                            for (Attribute attrSubSubItem : elSubSubItem.attributes())
-                            {
-                                if (attrSubSubItem.getKey().toLowerCase().equals("class"))
-                                {
-                                    if (attrSubSubItem.getValue().toLowerCase().contains(AttributeName.FA_FILE.getKeyword()))
-                                    {
+                            for (Attribute attrSubSubItem : elSubSubItem.attributes()) {
+                                if (attrSubSubItem.getKey().toLowerCase().equals("class")) {
+                                    if (attrSubSubItem.getValue().toLowerCase().contains(AttributeName.FA_FILE.getKeyword())) {
                                         /*super.writeLog("    - Attribute [%s:%s]", attrSubSubItem.getKey(), attrSubSubItem.getValue());*/
                                         isFound = true;
                                         break;
@@ -109,8 +90,7 @@ public class BTDiggEngine extends ParserHandler
                                 }
                             }
 
-                            if (isFound)
-                            {
+                            if (isFound) {
                                 /*super.writeLog("    - Filename [%s]", elSubSubItem.text());*/
                                 miTemp.addFileName(elSubSubItem.text());
                             }
@@ -119,24 +99,18 @@ public class BTDiggEngine extends ParserHandler
                 }
 
                 elsMagnet = getElementOfContainingKeyword(ClassName.TORRENT_MAGNET.getKeyword(), elItem);
-
-                if ((elsTorrentExcerpt.size() > 0) && (elsMagnet.size() > 0))
-                {
+                if ((elsTorrentExcerpt.size() > 0) && (elsMagnet.size() > 0)) {
                     elsFaMagnet = getElementOfContainingKeyword(ClassName.FA_MAGNET.getKeyword(), elsMagnet.get(0));
                     /*writeLog("* elsFaMagnet.size [%d]", elsFaMagnet.size());*/
-                    if (elsFaMagnet.size() > 0)
-                    {
-                        for (Element elSubItem : elsFaMagnet)
-                        {
-                            for (Element elFaSub : elSubItem.children())
-                            {
+                    if (elsFaMagnet.size() > 0) {
+                        for (Element elSubItem : elsFaMagnet) {
+                            for (Element elFaSub : elSubItem.children()) {
                                 /*writeLog("*    [%s] Attribute [%s]", elFaSub.text(), elFaSub.attributes().toString());*/
-                                strTemp = getStringValueOfKeyInAttributes("href", elFaSub.attributes());
-                                if (strTemp != null && miTemp != null)
-                                {
-                                    miTemp.setMagnetLink(strTemp);
-                                    /*writeLog("* Magnet [%s]", strTemp);*/
-                                    alMagInfo.add(miTemp);
+                                temp = getStringValueOfKeyInAttributes("href", elFaSub.attributes());
+                                if (temp != null && miTemp != null) {
+                                    miTemp.setMagnetLink(temp);
+                                    /*writeLog("* Magnet [%s]", temp);*/
+                                    magInfoList.add(miTemp);
                                     break;
                                 }
                             }
@@ -146,6 +120,6 @@ public class BTDiggEngine extends ParserHandler
             }
         }
 
-        return alMagInfo;
+        return magInfoList;
     }
 }
